@@ -1,0 +1,15 @@
+# case 5 - priority zone preferred
+nb_drones: 3
+start_hub: start 0 0 [color=green]
+end_hub: goal 3 0 [color=yellow]
+hub: A 1 0 [zone=normal]
+hub: B 1 1 [zone=priority color=blue]
+hub: C 2 0 [zone=normal]
+hub: D 2 1 [zone=normal]
+connection: start-A
+connection: start-B
+connection: A-C
+connection: B-D
+connection: C-goal
+connection: D-goal
+# expected: drones prefer path through B (priority)

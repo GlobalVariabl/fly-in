@@ -1,0 +1,8 @@
+# case 9 - tight link capacity
+nb_drones: 4
+start_hub: start 0 0 [color=green]
+end_hub: goal 2 0 [color=yellow]
+hub: A 1 0 [zone=normal max_drones=4]
+connection: start-A [max_link_capacity=1]
+connection: A-goal  [max_link_capacity=1]
+# expected: only 1 drone per turn on each connection

@@ -54,7 +54,7 @@ class RegEx_line:
             self.parsed_alls.append(self.connection[idx])
             RegEx_line.connections.append(self.connection[idx][0])
 
-        RegEx_line.validate_connection_link( self.parsed_alls[1:])
+        RegEx_line.validate_connection_link(self.parsed_alls[1:])
 
         
 
@@ -197,7 +197,7 @@ class RegEx_line:
             r"^(?P<from_hub>[^\s\-]+)" 
             r"-"  
             r"(?P<to_hub>[^\s\[\-]+)"  
-            r"(?:\s*\[\s*max_link_capacity\s*=\s*(?P<capacity>\d+)\s*])?$" 
+            r"(?:\s*\[\s*(?:max_link_capacity\s*=\s*(?P<capacity>\d+))?\s*\])?\s*$"
         )
         metadata_pattern = re.compile(
             r"max_link_capacity=(?P<capacity>\d+)$"
@@ -234,10 +234,14 @@ class RegEx_line:
             "to": to_hub,
             "max_link_capacity": defaults['max_link_capacity']
         }
+        # print(result)
         return result
     
     @staticmethod
     def validate_connection_link(list_line: list[str]) ->None:
+        
+        goal = list_line[1][0]['name']
+        goal_connected = False
         list_line.sort(key= lambda x: x[1])
 
         set_name = set()
@@ -265,6 +269,12 @@ class RegEx_line:
                         set_connection.add(connection)
                     else:
                         raise ValueError (f"The same connection must not appear more than once {connection} is repetition  in line {lines[1]+1}")
+                    
+        for connection in set_connection:
+            if goal in connection:
+                goal_connected = True
+        if not goal_connected:
+            raise ValueError (f"The is no {goal} in connection so connection is not full connect to end zone '{goal}'")
         
         
         
@@ -290,7 +300,7 @@ class Read_file():
         try:
             with open(self.file_name, 'r') as file:
                 list_lines = file.readlines()
-            # print(list_lines)
+            
             Read_file.valid_garbage_line(list_lines)
             Read_file.valid_line_dron(list_lines)
             Read_file.valid_special_zone(list_lines, "start_hub")
@@ -341,8 +351,14 @@ class Read_file():
                 f"nb_drones must be on the first non-comment line."
                 f"Found at line {line_dron + 1}, but first non-comment line is {first_non_comment_line_index + 1}"
                             )
-        
-        return list_lines[line_dron].rstrip("\n")
+        """handl # """
+        line = list_lines[line_dron].rstrip("\n")
+        if "#" in line:
+            line_whith_comm = line[line.index("#"):]
+            line_whith_no_comm = line.replace(line_whith_comm, "")
+        else:
+            line_whith_no_comm = line
+        return line_whith_no_comm
     
     @staticmethod
     def valid_special_zone(list_lines, special_zone):
@@ -366,8 +382,16 @@ class Read_file():
             raise ValueError (f"{special_zone} was not found in file")
         if repet_time != 1:
             raise ValueError (f"{special_zone} was repet {repet_time} time, last at line {line_idx + 1}")
-         
-        return [list_lines[line_idx].rstrip("\n"), line_idx]
+        
+        """handl # """
+        line = list_lines[line_idx].rstrip("\n")
+        if "#" in line:
+            line_whith_comm = line[line.index("#"):]
+            line_whith_no_comm = line.replace(line_whith_comm, "")
+        else:
+            line_whith_no_comm = line
+
+        return [line_whith_no_comm, line_idx]
     
     @staticmethod
     def valid_more_lines(list_lines, line_word):
@@ -382,10 +406,18 @@ class Read_file():
             if not stripped or stripped.startswith("#"):
                 continue
             if stripped.startswith(line_word):
-                lists_word.append([line.rstrip("\n"), idx])
+                """handl # """
+                line = line.rstrip("\n")
+                if "#" in line:
+                    line_whith_comm = line[line.index("#"):]
+                    line_whith_no_comm = line.replace(line_whith_comm, "")
+                else:
+                    line_whith_no_comm = line
+                lists_word.append([line_whith_no_comm, idx])
                 repet_time += 1
         if repet_time == 0 and line_word != 'hub:':
             raise ValueError (f"No '{line_word}' found in file")
+        
         return lists_word
     
     @staticmethod
@@ -445,11 +477,12 @@ class Json_file:
         Json_file.graph["end_zone"] = self.end_zone['name']
         Json_file.graph["hubs"] = {}
         Json_file.graph["graph"] = {}
+        Json_file.graph['distances'] = {}
 
         Json_file.graph["hubs"][self.start_zone['name']] =  {'coordinate': self.start_zone['coordinate'], 'zone': self.start_zone['zone'], 'color': self.start_zone['color'], 'max_drones' :self.start_zone['max_drones'], 'state':"empty", 'holde':self.drones_number}
         Json_file.graph["hubs"][self.end_zone['name']] =  {'coordinate': self.end_zone['coordinate'], 'zone': self.end_zone['zone'], 'color': self.end_zone['color'], 'max_drones' :self.drones_number, 'state':"empty", 'holde': 0 }
         for item in self.hub:
-            Json_file.graph["hubs"][item['name']] =  {'coordinate': item['coordinate'], 'zone': item['zone'], 'color': item['color'], 'max_drones' :item['max_drones']}
+            Json_file.graph["hubs"][item['name']] =  {'coordinate': item['coordinate'], 'zone': item['zone'], 'color': item['color'], 'max_drones' :item['max_drones'],'state':"empty", 'holde':0}
         
         for items in self.connection:
             if items['from'] not in Json_file.graph["graph"]:
@@ -460,7 +493,7 @@ class Json_file:
             Json_file.graph["graph"][items['from']].append({'to': items['to'], 'capacity': items['max_link_capacity'], 'state':"empty", 'holde':0})
             Json_file.graph["graph"][items['to']].append({'to': items['from'], 'capacity': items['max_link_capacity'], 'state':"empty", 'holde':0})
         
-        Json_file.distances_cost(Json_file.graph)
+        Json_file.graph['distances'] = Json_file.distances_cost(Json_file.graph)
         return Json_file.graph
 
     @staticmethod
@@ -469,7 +502,7 @@ class Json_file:
             "normal": 2,
             "priority": 1,
             "restricted": 3,
-            "blocked": 15,
+            "blocked": 151,
         }
         return costs[zone_name]
 
@@ -481,14 +514,32 @@ class Json_file:
         heapq.heapify(heap_list)
         while heap_list:
             current_cost, current = heapq.heappop(heap_list)
-            for edge in graph['graph'][current]: # to be handel 
+            for edge in graph['graph'][current]:
                 neighbor = edge['to']
+                if Json_file.graph['hubs'][neighbor]['zone'] == 'blocked':
+                    # print(Json_file.graph['hubs'][neighbor],"\n")
+                    continue
                 zone_cost = Json_file.get_cost(Json_file.graph['hubs'][neighbor]['zone'])
                 new_cost = zone_cost + current_cost
                 if new_cost < distances[neighbor][0]:
                     distances[neighbor][0] = new_cost
                     distances[neighbor][1] = current
                     heapq.heappush(heap_list, (new_cost, neighbor))
+        
+        is_valid_path =[]
+        start = Json_file.graph['start_zone']
+        while start != Json_file.graph['end_zone']:
+            if start != distances[start][1]:
+                is_valid_path.append(distances[start][1])
+                start = distances[start][1]
+            else:
+                break
+        # print(is_valid_path)
+        if Json_file.graph['end_zone'] not in is_valid_path:
+            raise ValueError(f"No Path Found from {start} to {goale} Check for: All blocked zones cutting all routes")   
+        
+        
+        return distances
 
 # Traceback (most recent call last):
 #   File "/home/magram/FLY-IN/step_one.py", line 518, in <module>
@@ -501,11 +552,13 @@ class Json_file:
 
 
 # capacity can not be least than 1
+# restrc 2 turn 
+# 
 
 
 
 
-        print(f"\n distances: {distances}\n")
+        # print(f"\n distances: {distances}\n")
         
 
 
@@ -518,6 +571,20 @@ class Json_file:
 
 
 
+
+
+def database():
+    try:
+        reader = Read_file("01_dead_end_trap.txt")
+        parser = RegEx_line(reader.get_data())
+        Json_file(parser.get_data())
+        json_file = Json_file(parser.get_data())
+        print(json_file.grouping_in_graph())
+        return json_file.grouping_in_graph()
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}")
+        
+    
 
 
 if __name__ == "__main__":

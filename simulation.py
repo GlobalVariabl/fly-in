@@ -32,8 +32,8 @@ class Drone:
         self.location: str = graph["start_zone"]
         self.statue: str = "waiting"
         
-        self.can_i_fil: bool = True 
-        # self.transit_destination: str | None = None
+        self.in_transit: bool = False 
+        self.transit_destination: str | None = None
     
     
     # def fly_drones(self,drones_id, graph):
@@ -152,9 +152,10 @@ class Simulation():
                 if zone_data.get('zone') == 'blocked':
                     continue
                 
-                # if zone_data.get('zone') == 'restricted':
+                if zone_data.get('zone') == 'restricted':
+                    buffer_zone.append((drone,landing))
                     
-                # why not just holde 'F' for twe turn => and leaving will be free
+                    # why not just holde 'F' for twe turn => and leaving will be free
                 
                 
                 # restrc 2 turn
@@ -174,12 +175,6 @@ class Simulation():
                 if leaving != self.graph['start_zone']:
                     self.graph['hubs'][leaving]['holde'] -= 1
                 
-
-                # if drone.can_i_fil:
-                drone.move_to_next_zone(landing)
-                
-                
-                drone.can_i_fil =  zone_data.get('zone') != 'restricted'
                 
                 self.graph['hubs'][landing]['holde'] += 1
                     
@@ -189,6 +184,7 @@ class Simulation():
                     self.graph['hubs'][landing]['state'] = 'empty'
                     
                 
+                drone.move_to_next_zone(landing)
                 
                 move_track.append((drone.drones_id, landing))
             
@@ -205,7 +201,6 @@ class Simulation():
 
         print(f"\nTotal turns: {self.turn}")
         print(zone_req)
-        
 
 
 

@@ -1,75 +1,11 @@
-from step_one import database
 from typing import Any, Optional
-
-
-class Drone:
-    """Represents a single drone."""
-
-    def __init__(self, drones_id: int, graph: dict) -> None:
-        """Initialize drone at start zone."""
-        self.graph = graph
-        self.drones_id = drones_id
-        self.location: str = graph["start_zone"]
-        self.statue: str = "waiting"
-
-        self.wait_turns = 0
-        self.rest_zone_landing = ""
-        self.rest_zone_leaving = ""
-
-    def get_next_bast_zone(self) -> str | None:
-        """
-        Find the best next zone for a drone to move to.
-        Returns the zone ID of the best move, or None if no move is available.
-        """
-        location = self.location
-        best_zone: str | None = None
-        all_zones = self.graph["graph"][location]
-        location_cost = self.graph["distances"][location][0]
-        best_cost: float = float("inf")
-
-        for edge in all_zones:
-            next_zone = edge["to"]
-            next_cost = self.graph["distances"][next_zone][0]
-
-            # skip blocked
-            if float(next_cost) >= float(location_cost):  # or just > !?
-                continue
-
-            next_zone_data: dict = self.graph["hubs"].get(next_zone, {})
-
-            # skip full zones
-            current: int = next_zone_data.get("holde", 0)
-            maximum: float = next_zone_data.get("max_drones", 1)
-            if current >= maximum:
-                continue
-
-            # pick lowest gradient neighbor
-            if next_cost < best_cost:
-                best_cost = next_cost
-                best_zone = next_zone
-
-        return best_zone
-
-    def move_to_next_zone(self, next_zone):
-        """Move drone to next zone."""
-
-        self.location = next_zone
-        if next_zone == self.graph["end_zone"]:
-            self.statue = "DELIVERED"
-
-    def get_state(self):
-        """Return current drone state."""
-        return {
-            "drones_id": self.drones_id,
-            "statue": self.statue,
-            "location": self.location,
-        }
+from Drone import Drone
 
 
 class Simulation:
     """Manages turn-by-turn simulation.
     Simulation will accept drone next move"""
- 
+
     def __init__(self, graph: dict[str, Any]) -> None:
         """Initialize simulation."""
         self.graph: dict[str, Any] = graph
@@ -77,29 +13,29 @@ class Simulation:
         self.goal: str = graph["end_zone"]
         self.track_drone: list[Drone] = []
         self.run()
- 
+
     def all_delivered(self) -> bool:
         """Check if all drones delivered."""
         return all(drone.statue == "DELIVERED" for drone in self.track_drone)
- 
+
     def run(self) -> None:
         """Run simulation until all drones delivered."""
         self.turn = 0
         zone_req: list[Any] = []
- 
+
         for drone_id in range(1, self.graph["drones_number"] + 1):
             drone = Drone(drone_id, self.graph)
             self.track_drone.append(drone)
- 
+
         while not self.all_delivered():
- 
+
             move_track: list[tuple[int, str]] = []
             connection_idx: Optional[int] = None
             capacity_link: Optional[int] = None
             holde_link: Optional[int] = None
- 
+
             for drone in self.track_drone:
- 
+
                 if drone.wait_turns > 0:
                     drone.wait_turns -= 1
                     drone.move_to_next_zone(drone.rest_zone_landing)
@@ -107,22 +43,22 @@ class Simulation:
                         (drone.drones_id, drone.rest_zone_landing)
                     )
                     continue
- 
+
                 if drone.statue == "DELIVERED":
                     continue
- 
+
                 zone: Optional[str] = drone.get_next_bast_zone()
                 if zone is None:
                     continue
- 
+
                 zone_data: dict[str, Any] = self.graph["hubs"][zone]
- 
+
                 if zone_data.get("zone") == "blocked":
                     continue
- 
+
                 current_hold: int = zone_data.get("holde", 0)
                 max_drones: int = zone_data.get("max_drones", 1)
- 
+
                 for idx, connection in enumerate(
                     self.graph["graph"][drone.location]
                 ):
@@ -131,29 +67,29 @@ class Simulation:
                         capacity_link = connection["capacity"]
                         holde_link = connection["holde"]
                         break
- 
+
                 if capacity_link == holde_link:
                     continue
- 
+
                 if current_hold < max_drones:
                     leaving: str = drone.location
                     landing: str = zone
- 
+
                 if leaving != self.graph["start_zone"]:
                     self.graph["hubs"][leaving]["holde"] -= 1
- 
+
                 self.graph["hubs"][landing]["holde"] += 1
- 
+
                 if self.graph["hubs"][landing]["holde"] == max_drones:
                     self.graph["hubs"][landing]["state"] = "full"
                 else:
                     self.graph["hubs"][landing]["state"] = "empty"
- 
+
                 if connection_idx is not None:
                     self.graph["graph"][drone.location][connection_idx][
                         "holde"
                     ] += 1
- 
+
                 if zone_data.get("zone") == "restricted":
                     drone.wait_turns = 1
                     drone.rest_zone_landing = landing
@@ -164,7 +100,7 @@ class Simulation:
                 else:
                     drone.move_to_next_zone(landing)
                     move_track.append((drone.drones_id, landing))
- 
+
             for connection_zone in self.graph["graph"]:
                 for holde in self.graph["graph"][connection_zone]:
                     holde["holde"] = 0
@@ -174,39 +110,8 @@ class Simulation:
                     f"  D{did}-{zone}" for did, zone in move_track
                 )
                 print(f"Turn {self.turn + 1}: {output}")
- 
+
             self.turn += 1
- 
+
         print(f"\nTotal turns: {self.turn}")
         print(zone_req)
-
-
-if __name__ == "__main__":
-    from Read_file import Read_file
-    from RegEx_line import RegEx_line
-    from Json_file import Json_file
-    try:
-        print(f"\n\t\t✓  RUN 111")
-        reader = Read_file("test.txt")
-        parser = RegEx_line(reader.get_data())
-        Json_file(parser.get_data())
-        json_file =  Json_file(parser.get_data())
-        databas = json_file.grouping_in_graph()
-        
-        if databas is None:
-            exit()
-        from Simulation import Simulation as Air_Traffic_Control
-        run = Air_Traffic_Control(databas)
-    except Exception as e:
-        print(f"Error: {e}")
-    
-    try:
-        print(f"\t\t✓  RUN 222")
-         
-        graph = database()
-
-        if graph is None:
-            exit()
-        run = Simulation(graph)
-    except Exception as e:
-        print(f"Error: {e}")

@@ -15,32 +15,26 @@ class Read_file:
     def read_lines(self) -> None:
         list_lines: list[str] = []
 
-        try:
-            with open(self.file_name, "r") as file:
-                list_lines = file.readlines()
+        with open(self.file_name, "r") as file:
+            list_lines = file.readlines()
+        Read_file.valid_garbage_line(list_lines)
+        Read_file.valid_line_dron(list_lines)
+        Read_file.valid_special_zone(list_lines, "start_hub")
+        Read_file.valid_special_zone(list_lines, "end_hub")
+        Read_file.valid_more_lines(list_lines, "hub")
+        Read_file.valid_more_lines(list_lines, "connection")
 
-            Read_file.valid_garbage_line(list_lines)
-            Read_file.valid_line_dron(list_lines)
-            Read_file.valid_special_zone(list_lines, "start_hub")
-            Read_file.valid_special_zone(list_lines, "end_hub")
-            Read_file.valid_more_lines(list_lines, "hub")
-            Read_file.valid_more_lines(list_lines, "connection")
-
-            Read_file.n_drones = Read_file.valid_line_dron(list_lines)
-            Read_file.s_zone = Read_file.valid_special_zone(
-                list_lines, "start_hub"
-            )
-            Read_file.e_zone = Read_file.valid_special_zone(
-                list_lines, "end_hub"
-            )
-            Read_file.hub = Read_file.valid_more_lines(list_lines, "hub")
-            Read_file.connection = Read_file.valid_more_lines(
-                list_lines, "connection"
-            )
-        except FileNotFoundError:
-            print("File not found")
-        except Exception as e:
-            print(f"Error:\n   {e}")
+        Read_file.n_drones = Read_file.valid_line_dron(list_lines)
+        Read_file.s_zone = Read_file.valid_special_zone(
+            list_lines, "start_hub"
+        )
+        Read_file.e_zone = Read_file.valid_special_zone(
+            list_lines, "end_hub"
+        )
+        Read_file.hub = Read_file.valid_more_lines(list_lines, "hub")
+        Read_file.connection = Read_file.valid_more_lines(
+            list_lines, "connection"
+        )
 
     @staticmethod
     def valid_line_dron(list_lines: list[str]) -> str:

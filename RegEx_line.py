@@ -38,12 +38,12 @@ class RegEx_line:
         self.parsed_alls.append({"drones_number": self.drones_number})
 
         self.start_zone[0] = RegEx_line.validit_hub_sd(
-            self.start_zone[0].split(":")[1].strip(), True
+            self.start_zone[0].split(":", 1)[1].strip(), True
         )
         self.parsed_alls.append(self.start_zone)
 
         self.end_zone[0] = RegEx_line.validit_hub_sd(
-            self.end_zone[0].split(":")[1].strip(), True
+            self.end_zone[0].split(":", 1)[1].strip(), True
         )
         self.parsed_alls.append(self.end_zone)
 
@@ -65,7 +65,7 @@ class RegEx_line:
             RegEx_line.hubs.append(self.hub[idx][0])
         for idx, line in enumerate(self.connection):
             self.connection[idx][0] = RegEx_line.validate_connection(
-                line[0].split(":")[1].strip()
+                line[0].split(":", 1)[1].strip()
             )
             self.parsed_alls.append(self.connection[idx])
             RegEx_line.connections.append(self.connection[idx][0])
@@ -149,7 +149,7 @@ class RegEx_line:
                     )
 
                 if key == "max_drones":
-                    if not re.match(r"^[1-9][0-9]*$", value):
+                    if not re.match(r"^[0-9][0-9]*$", value):
                         raise ValueError(
                             f"Invalid max_drones value '{value}'"
                             f" in line: '{line}'."
@@ -211,7 +211,7 @@ class RegEx_line:
         connection_pattern = re.compile(
             r"^(?P<from_hub>[^\s\-]+)"
             r"-"
-            r"(?P<to_hub>[^\s\[\-]+)"
+            r"(?P<to_hub>[^\s\-]+)"
             r"(?:\s*\[\s*(?:max_link_capacity\s*=\s*"
             r"(?P<capacity>\d+))?\s*\])?\s*$"
         )

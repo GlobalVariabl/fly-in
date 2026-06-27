@@ -45,12 +45,12 @@ class RegEx_line:
         self.parsed_alls.append({"drones_number": self.drones_number})
 
         self.start_zone[0] = RegEx_line.validit_hub_sd(
-            self.start_zone[0].split(":")[1].strip(), True
+            self.start_zone[0].split(":", 1)[1].strip(), True
         )
         self.parsed_alls.append(self.start_zone)
 
         self.end_zone[0] = RegEx_line.validit_hub_sd(
-            self.end_zone[0].split(":")[1].strip(), True
+            self.end_zone[0].split(":", 1)[1].strip(), True
         )
         self.parsed_alls.append(self.end_zone)
 
@@ -72,7 +72,7 @@ class RegEx_line:
             RegEx_line.hubs.append(self.hub[idx][0])
         for idx, line in enumerate(self.connection):
             self.connection[idx][0] = RegEx_line.validate_connection(
-                line[0].split(":")[1].strip()
+                line[0].split(":", 1)[1].strip()
             )
             self.parsed_alls.append(self.connection[idx])
             RegEx_line.connections.append(self.connection[idx][0])
@@ -218,7 +218,7 @@ class RegEx_line:
         connection_pattern = re.compile(
             r"^(?P<from_hub>[^\s\-]+)"
             r"-"
-            r"(?P<to_hub>[^\s\[\-]+)"
+            r"(?P<to_hub>[^\s\-]+)"
             r"(?:\s*\[\s*(?:max_link_capacity\s*=\s*"
             r"(?P<capacity>\d+))?\s*\])?\s*$"
         )
@@ -332,27 +332,22 @@ class Read_file:
     def read_lines(self) -> None:
         list_lines: list[str] = []
 
-        try:
-            with open(self.file_name, "r") as file:
+        with open(self.file_name, "r") as file:
                 list_lines = file.readlines()
 
-            Read_file.valid_garbage_line(list_lines)
-            Read_file.valid_line_dron(list_lines)
-            Read_file.valid_special_zone(list_lines, "start_hub")
-            Read_file.valid_special_zone(list_lines, "end_hub")
-            Read_file.valid_more_lines(list_lines, "hub")
-            Read_file.valid_more_lines(list_lines, "connection")
+        Read_file.valid_garbage_line(list_lines)
+        Read_file.valid_line_dron(list_lines)
+        Read_file.valid_special_zone(list_lines, "start_hub")
+        Read_file.valid_special_zone(list_lines, "end_hub")
+        Read_file.valid_more_lines(list_lines, "hub")
+        Read_file.valid_more_lines(list_lines, "connection")
 
-            Read_file.n_drones = Read_file.valid_line_dron(list_lines)
-            Read_file.s_zone = Read_file.valid_special_zone(list_lines, "start_hub")
-            Read_file.e_zone = Read_file.valid_special_zone(list_lines, "end_hub")
-            Read_file.hub = Read_file.valid_more_lines(list_lines, "hub")
-            Read_file.connection = Read_file.valid_more_lines(list_lines, "connection")
-        except FileNotFoundError:
-            print("File not found")
-        except Exception as e:
-            print(f"Error:\n   {e}")
-
+        Read_file.n_drones = Read_file.valid_line_dron(list_lines)
+        Read_file.s_zone = Read_file.valid_special_zone(list_lines, "start_hub")
+        Read_file.e_zone = Read_file.valid_special_zone(list_lines, "end_hub")
+        Read_file.hub = Read_file.valid_more_lines(list_lines, "hub")
+        Read_file.connection = Read_file.valid_more_lines(list_lines, "connection")
+        
     @staticmethod
     def valid_line_dron(list_lines: list[str]) -> str:
         """
@@ -587,7 +582,6 @@ class Json_file:
             for edge in graph["graph"][current]:
                 neighbor = edge["to"]
                 if Json_file.graph["hubs"][neighbor]["zone"] == "blocked":
-                    # print(Json_file.graph['hubs'][neighbor],"\n")
                     continue
                 zone_cost = Json_file.get_cost(
                     Json_file.graph["hubs"][neighbor]["zone"]
@@ -611,23 +605,8 @@ class Json_file:
             raise ValueError(
                 f"No Path Found from {start} to {goale} Check for: All blocked zones cutting all routes"
             )
-
         return distances
 
-    # Traceback (most recent call last):
-    #   File "/home/magram/FLY-IN/step_one.py", line 518, in <module>
-    #     print(json_file.grouping_in_graph())
-    #   File "/home/magram/FLY-IN/step_one.py", line 463, in grouping_in_graph
-    #     Json_file.distances_cost(Json_file.graph)
-    #   File "/home/magram/FLY-IN/step_one.py", line 484, in distances_cost
-    #     for edge in graph['graph'][current]:
-    # KeyError: 'goal'
-
-    # capacity can not be least than 1
-    # restrc 2 turn
-    #
-
-    # print(f"\n distances: {distances}\n")
 
     def get_data(self):
         """Return parsed data as a dictionary."""
@@ -641,7 +620,7 @@ def database():
         Json_file(parser.get_data())
         json_file = Json_file(parser.get_data())
         print()
-        print(json_file.grouping_in_graph())
+        # print(json_file.grouping_in_graph())
         print()
         return json_file.grouping_in_graph()
     except (FileNotFoundError, ValueError) as e:
